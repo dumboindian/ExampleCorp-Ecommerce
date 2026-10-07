@@ -58,7 +58,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: 'Route not found'
