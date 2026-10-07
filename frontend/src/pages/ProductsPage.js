@@ -9,30 +9,29 @@ const ProductsPage = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('https://examplecorp-ecommerce.onrender.com/api/products');
-        setProducts(response.data);
-        setFilteredProducts(response.data);
+        const response = await axios.get(
+          'https://examplecorp-ecommerce.onrender.com/api/products'
+        );
+
+        const apiProducts = response.data?.data;
+
+        if (!Array.isArray(apiProducts)) {
+          throw new Error('The API response did not contain a product list.');
+        }
+
+        setProducts(apiProducts);
+        setError(null);
       } catch (err) {
         console.error('Error fetching products:', err);
-        // Add some dummy data for demo purposes
-        const dummyProducts = [
-          { _id: '1', name: 'Premium Headphones', price: 199.99, rating: 4, reviews: 156, category: 'Electronics' },
-          { _id: '2', name: 'Wireless Mouse', price: 49.99, rating: 5, reviews: 89, category: 'Electronics' },
-          { _id: '3', name: 'Mechanical Keyboard', price: 129.99, rating: 4, reviews: 234, category: 'Electronics' },
-          { _id: '4', name: 'Smartphone Stand', price: 24.99, rating: 4, reviews: 67, category: 'Accessories' },
-          { _id: '5', name: 'USB-C Cable', price: 19.99, rating: 5, reviews: 123, category: 'Accessories' },
-          { _id: '6', name: 'Portable Charger', price: 39.99, rating: 4, reviews: 89, category: 'Electronics' },
-          { _id: '7', name: 'Bluetooth Speaker', price: 79.99, rating: 5, reviews: 156, category: 'Electronics' },
-          { _id: '8', name: 'Phone Case', price: 14.99, rating: 4, reviews: 78, category: 'Accessories' },
-        ];
-        setProducts(dummyProducts);
-        setFilteredProducts(dummyProducts);
+        setProducts([]);
+        setError('Could not load products. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -42,11 +41,12 @@ const ProductsPage = () => {
   }, []);
 
   useEffect(() => {
-    let filtered = products.filter(product =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const search = searchTerm.toLowerCase();
+
+    const filtered = products.filter((product) =>
+      product.name?.toLowerCase().includes(search)
     );
 
-    // Sort products
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'price-low':
@@ -57,19 +57,19 @@ const ProductsPage = () => {
           return (b.rating || 0) - (a.rating || 0);
         case 'name':
         default:
-          return a.name.localeCompare(b.name);
+          return (a.name || '').localeCompare(b.name || '');
       }
     });
 
     setFilteredProducts(filtered);
   }, [products, searchTerm, sortBy]);
 
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
   };
 
-  const handleSortChange = (e) => {
-    setSortBy(e.target.value);
+  const handleSortChange = (event) => {
+    setSortBy(event.target.value);
   };
 
   return (
@@ -105,20 +105,23 @@ const ProductsPage = () => {
         <div className="products-content">
           {loading ? (
             <div className="loading">Loading products...</div>
+          ) : error ? (
+            <div className="no-products">{error}</div>
           ) : filteredProducts.length === 0 ? (
             <div className="no-products">
-              {searchTerm ? 
-                `No products found matching "${searchTerm}"` : 
-                'No products available'
-              }
+              {searchTerm
+                ? `No products found matching "${searchTerm}"`
+                : 'No products available'}
             </div>
           ) : (
             <>
               <div className="products-count">
-                Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
+                Showing {filteredProducts.length} product
+                {filteredProducts.length !== 1 ? 's' : ''}
               </div>
+
               <div className="products-grid">
-                {filteredProducts.map(product => (
+                {filteredProducts.map((product) => (
                   <ProductCard key={product._id} product={product} />
                 ))}
               </div>
